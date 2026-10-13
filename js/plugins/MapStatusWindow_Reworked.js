@@ -229,8 +229,8 @@ Window_MapStatusHUD.prototype = Object.create(Window_Base.prototype);
 Window_MapStatusHUD.prototype.constructor = Window_MapStatusHUD;
 
 Window_MapStatusHUD.prototype.initialize = function () {
-  var _fs = Window_Base.prototype.standardFontSize
-      ? Window_Base.prototype.standardFontSize() : 28;
+  var _fs = Math.max(1, Window_Base.prototype.standardFontSize
+      ? Window_Base.prototype.standardFontSize() : 28);
   var _innerPadY   = 6;
   var _nameFs      = Math.max(12, Math.round(_fs * 0.57));
   var _gaugeH      = Math.max(10, Math.round(_fs * 0.46));
@@ -400,8 +400,8 @@ Window_MapCompanionHUD.prototype = Object.create(Window_Base.prototype);
 Window_MapCompanionHUD.prototype.constructor = Window_MapCompanionHUD;
 
 Window_MapCompanionHUD.prototype.initialize = function () {
-  var _fs2 = Window_Base.prototype.standardFontSize
-      ? Window_Base.prototype.standardFontSize() : 28;
+  var _fs2 = Math.max(1, Window_Base.prototype.standardFontSize
+      ? Window_Base.prototype.standardFontSize() : 28);
   var _nameFs2     = Math.max(12, Math.round(_fs2 * 0.50));
   var _gaugeH2     = Math.max(10, Math.round(_fs2 * 0.46));
   var _gaugeLblH2  = Math.max(9,  Math.round(_fs2 * 0.39));

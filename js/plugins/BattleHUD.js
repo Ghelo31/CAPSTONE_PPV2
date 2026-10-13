@@ -12,10 +12,11 @@
  * @author Harleythetech
  *
  * @param partyLabel
- * @text Party Label
+ * @text Party Label (Fallback)
  * @type string
- * @default Harley's Party
- * @desc Party name shown on the right of the scoreboard pill.
+ * @default Party
+ * @desc Fallback shown on the scoreboard if no lead actor is available.
+ *       During gameplay the label is automatically "[Lead Actor's Name]'s Party".
  *
  * @param enemyLabel
  * @text Enemy Label
@@ -105,15 +106,8 @@
         params: params
     });
 
-    var mobileScale = 1;
-    if (window.MobileUIScale && typeof window.MobileUIScale.scale === 'number') {
-        mobileScale = window.MobileUIScale.scale;
-    } else if (navigator.maxTouchPoints > 0 || /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent || '')) {
-        mobileScale = Number(params.mobileScale || 1.2);
-    }
-
     var CFG = {
-        partyLabel:      String(params['partyLabel']           || "Harley's Party"),
+        partyLabel:      String(params['partyLabel']           || 'Party'),
         enemyLabel:      String(params['enemyLabel']           || 'Enemy'),
         scoreVarId:      Number(params['scoreVariableId']      || 1),
         enemyScoreVarId: Number(params['enemyScoreVariableId'] || 2),
@@ -121,7 +115,7 @@
         panelMargin:     Number(params['panelMargin']          || 8),
         panelY:          Number(params['panelY']               || 8),
         scorebarY:       Number(params['scorebarY']            || 8),
-        uiScale:         mobileScale,
+        uiScale:         1,
     };
 
     // -------------------------------------------------------------------------
@@ -447,10 +441,22 @@
     Sprite_PalScorebar.prototype = Object.create(Sprite.prototype);
     Sprite_PalScorebar.prototype.constructor = Sprite_PalScorebar;
 
+    /** Returns the party label string — uses the lead actor's name at runtime,
+     *  falling back to the plugin-param value if the party isn't available. */
+    function getPartyLabel() {
+        try {
+            if ($gameParty && $gameParty.leader && $gameParty.leader()) {
+                return $gameParty.leader().name() + "'s Party";
+            }
+        } catch (e) { /* fall through */ }
+        return CFG.partyLabel;
+    }
+
     Sprite_PalScorebar.prototype._snap = function () {
         var es = $gameVariables ? $gameVariables.value(CFG.enemyScoreVarId) : 0;
         var ps = $gameVariables ? $gameVariables.value(CFG.scoreVarId)      : 0;
-        return es + '|' + ps;
+        var lbl = getPartyLabel();
+        return es + '|' + ps + '|' + lbl;
     };
 
     Sprite_PalScorebar.prototype._rebuild = function () {
@@ -464,11 +470,11 @@
 
         // Pill parts — labels white, scores coloured
         var parts = [
-            { text: CFG.enemyLabel + ': ', color: '#ffffff'  },
-            { text: String(eScore),         color: '#ff6666' },
-            { text: '  |  ',               color: '#888888' },
-            { text: String(pScore),         color: C.hp1     },
-            { text: '  :' + CFG.partyLabel, color: '#ffffff'  },
+            { text: CFG.enemyLabel + ': ',    color: '#ffffff'  },
+            { text: String(eScore),            color: '#ff6666' },
+            { text: '  |  ',                  color: '#888888' },
+            { text: String(pScore),            color: C.hp1     },
+            { text: '  :' + getPartyLabel(),   color: '#ffffff'  },
         ];
 
         // Measure using off-screen canvas
