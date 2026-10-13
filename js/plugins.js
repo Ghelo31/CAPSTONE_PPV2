@@ -15,5 +15,6 @@ var $plugins =
 {"name":"VirtualGamepad","status":true,"description":"[v1.0.0] Virtual gamepad for RPG Maker MV/MZ","parameters":{"controlType":"DPad","deadZone":"15","joystickRange":"60","joystickActivationRadius":"120","buttonHitRadius":"44","opacity":"100","fadeSpeed":"10","margin":"80","hideOnEvent":"true","disableTapToMove":"true","vibration":"true","vibrationDuration":"30","showOnDesktop":"false"}},
 {"name":"BattleHUD","status":true,"description":"[v3.0.0] Custom battle HUD matching MissionTracker visual style.","parameters":{"partyLabel":"Harley's Party","enemyLabel":"Enemy","scoreVariableId":"1","enemyScoreVariableId":"2","panelWidth":"300","panelY":"8","scorebarY":"8"}},
 {"name":"DialogueNavigation","status":true,"description":"v1.3 Adds Susunod/Bumalik navigation to map and battle dialogue pages.","parameters":{"Next Label":"Susunod","Back Label":"Bumalik","Battle Dialogue":"true","Map Dialogue":"true","Debug Logging":"true"}},
-{"name":"DialogueDim","status":true,"description":"Forces all Show Text dialogue windows to use the Dim background.","parameters":{}}
+{"name":"DialogueDim","status":true,"description":"Forces all Show Text dialogue windows to use the Dim background.","parameters":{}},
+{"name":"DialogueAutoResize","status":true,"description":"[v1.0] Dynamically resizes the dialogue window to fit all text lines including word-wrapped lines.","parameters":{"Max Rows":"10"}}
 ];
