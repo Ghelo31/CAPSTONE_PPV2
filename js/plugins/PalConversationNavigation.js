@@ -109,7 +109,7 @@
         var choices = [NEXT_LABEL];
         if (history.currentIndex > 0) choices.push(BACK_LABEL);
         $gameMessage.setChoices(choices, 0, -1);
-        $gameMessage.setChoicePositionType(2);
+        $gameMessage.setChoicePositionType(1);
         $gameMessage.setChoiceBackground(0);
         activeNavigation = { interpreter: interpreter, history: history };
         logNavigation('choices shown', interpreter, history,
