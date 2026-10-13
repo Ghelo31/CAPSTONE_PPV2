@@ -32,7 +32,7 @@
  *
  * @help
  * ===========================================================================
- *  KK_MobileUIScale
+ *  MobileUIScale
  * ===========================================================================
  *
  *  Automatically enlarges RPG Maker MV's window UI when running on a mobile
@@ -55,6 +55,11 @@
     const MIN_FONT   = Number(p['minFontSize']) || 32;
     const MAX_FONT   = Number(p['maxFontSize']) || 52;
 
+    // Expose the active factor so custom canvas-based HUDs can use the same
+    // scaling as RPG Maker windows without duplicating device detection.
+    window.MobileUIScale = window.MobileUIScale || {};
+    window.MobileUIScale.scale = 1;
+
     // ── Device detection (mirrors KK_VirtualGamepad's logic) ──────────────────
     function isMobile() {
         var ua = navigator.userAgent || '';
@@ -68,6 +73,7 @@
     // Don't touch anything on desktop
     if (!isMobile()) return;
 
+    window.MobileUIScale.scale = SCALE;
     console.log('[KK_MobileUIScale] Mobile detected — applying UI scale ×' + SCALE);
 
     // ── Core scaling helpers ───────────────────────────────────────────────────
@@ -144,17 +150,111 @@
         _drawActorFace.call(this, actor, x, y, width, height);
     };
 
-    // ── Message window height ──────────────────────────────────────────────────
-    // The default message window fits 4 lines at standard size.  After scaling,
-    // each line is taller so we need a taller window to avoid clipping.
-    var _windowHeight = Window_Message.prototype.windowHeight;
-    Window_Message.prototype.windowHeight = function () {
-        // numVisibleRows() * lineHeight() + 2 * standardPadding() — same formula
-        // as MV core but using the now-scaled methods.
-        return this.numVisibleRows() * this.lineHeight() + 2 * this.standardPadding();
+    // ── Word wrap — self-contained implementation ──────────────────────────────
+    //
+    // Vanilla RPG Maker MV has no word wrap. Long lines just overflow.
+    // We implement it by hooking Window_Message.startMessage to pre-process
+    // the queued text and insert \n line breaks before words that would
+    // overflow the window's content width at the current font size.
+
+    var _Scene_Boot_start = Scene_Boot.prototype.start;
+    Scene_Boot.prototype.start = function () {
+        _Scene_Boot_start.call(this);
+
+        // ── windowHeight: always recompute from scaled metrics ─────────────────
+        Window_Message.prototype.windowHeight = function () {
+            var rows = this.numVisibleRows();
+            return rows * this.lineHeight() + 2 * this.standardPadding();
+        };
+
+        // ── Pre-wrap text before the message window renders it ─────────────────
+        var _startMessage = Window_Message.prototype.startMessage;
+        Window_Message.prototype.startMessage = function () {
+            _wrapMessageTexts(this);
+            _startMessage.call(this);
+        };
+
+        console.log('[MobileUIScale] Word wrap + windowHeight patches applied.');
     };
 
-    console.log('[KK_MobileUIScale] UI scale applied. Font ~' +
-        Math.round((Window_Base.prototype.standardFontSize.call({}) )) + 'px');
+    // Measure pixel width of a plain string at a given font size.
+    // Uses an off-screen canvas — created once and reused.
+    var _measureCanvas = document.createElement('canvas');
+    var _measureCtx    = _measureCanvas.getContext('2d');
+
+    function _measureText(text, fontSize, fontFace) {
+        _measureCtx.font = fontSize + 'px ' + (fontFace || 'GameFont, sans-serif');
+        return _measureCtx.measureText(text).width;
+    }
+
+    // Strip escape codes (e.g. \c[n], \i[n], \n[n]) from a string so they
+    // don't skew the width measurement.
+    function _stripEscapes(text) {
+        return text.replace(/\\[A-Za-z]+\[\d+\]/g, '')
+                   .replace(/\\[A-Za-z]/g, '');
+    }
+
+    // Insert word-wrap line breaks into a single message text string.
+    function _wrapLine(text, maxWidth, fontSize, fontFace) {
+        // Split on existing newlines first, wrap each segment independently.
+        var segments = text.split('\n');
+        var result   = [];
+
+        for (var s = 0; s < segments.length; s++) {
+            var words = segments[s].split(' ');
+            var line  = '';
+
+            for (var w = 0; w < words.length; w++) {
+                var word    = words[w];
+                var test    = line ? line + ' ' + word : word;
+                var testW   = _measureText(_stripEscapes(test), fontSize, fontFace);
+
+                if (testW > maxWidth && line !== '') {
+                    result.push(line);
+                    line = word;
+                } else {
+                    line = test;
+                }
+            }
+            if (line) result.push(line);
+        }
+
+        return result.join('\n');
+    }
+
+    // Walk through $gameMessage._texts and wrap each entry.
+    function _wrapMessageTexts(win) {
+        if (!$gameMessage) return;
+        var texts = $gameMessage._texts;
+        if (!texts || !texts.length) return;
+
+        var fontSize  = win.standardFontSize ? win.standardFontSize() : 28;
+        var fontFace  = 'GameFont, sans-serif';
+        var padX      = win.standardPadding  ? win.standardPadding()  : 18;
+        var textPadX  = win.textPadding      ? win.textPadding()      : 6;
+
+        // Account for face portrait column if one is shown
+        var faceW     = ($gameMessage.faceName() !== '')
+            ? (Window_Base._faceWidth || 144) + textPadX * 2
+            : 0;
+
+        var maxWidth  = win.contentsWidth
+            ? win.contentsWidth() - faceW
+            : win.width - padX * 2 - faceW;
+
+        for (var i = 0; i < texts.length; i++) {
+            texts[i] = _wrapLine(texts[i], maxWidth, fontSize, fontFace);
+        }
+    }
+
+    // ── Message row count ──────────────────────────────────────────────────────
+    // numVisibleRows is 4 by default. On mobile each row is ~40% taller after
+    // scaling so reduce to 3 to keep the window from taking up too much screen.
+    var _numVisibleRows = Window_Message.prototype.numVisibleRows;
+    Window_Message.prototype.numVisibleRows = function () {
+        return 3;
+    };
+
+    console.log('[MobileUIScale] Mobile UI scale active.');
 
 })();

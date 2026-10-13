@@ -89,6 +89,28 @@
 
     var PLUGIN_NAME = 'BattleHUD';
     var params      = PluginManager.parameters(PLUGIN_NAME);
+    var DEBUG       = true;
+
+    function hudDebug(message, details) {
+        if (!DEBUG || !window.console || !console.log) return;
+        if (details !== undefined) {
+            console.log('[BattleHUD] ' + message, details);
+        } else {
+            console.log('[BattleHUD] ' + message);
+        }
+    }
+
+    hudDebug('plugin loaded', {
+        script: document.currentScript && document.currentScript.src,
+        params: params
+    });
+
+    var mobileScale = 1;
+    if (window.MobileUIScale && typeof window.MobileUIScale.scale === 'number') {
+        mobileScale = window.MobileUIScale.scale;
+    } else if (navigator.maxTouchPoints > 0 || /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent || '')) {
+        mobileScale = Number(params.mobileScale || 1.2);
+    }
 
     var CFG = {
         partyLabel:      String(params['partyLabel']           || "Harley's Party"),
@@ -99,6 +121,7 @@
         panelMargin:     Number(params['panelMargin']          || 8),
         panelY:          Number(params['panelY']               || 8),
         scorebarY:       Number(params['scorebarY']            || 8),
+        uiScale:         mobileScale,
     };
 
     // -------------------------------------------------------------------------
@@ -136,23 +159,31 @@
     var G = {
         cardBg:       'rgba(10, 14, 22, 0.65)',
         cardBorder:   'rgba(255, 255, 255, 0.12)',
-        cardRadius:   10,
+        cardRadius:   10 * CFG.uiScale,
         gaugeBg:      'rgba(0, 0, 0, 0.65)',
         pillBg:       'rgba(10, 14, 22, 0.72)',
-        pad:          8,
-        innerPad:     8,
+        pad:          8 * CFG.uiScale,
+        innerPad:     8 * CFG.uiScale,
         outlineColor: 'rgba(0,0,0,0.9)',
         outlineW:     3,
     };
 
-    var _base = Window_Base.prototype.standardFontSize
-        ? Window_Base.prototype.standardFontSize()
-        : 28;
+    // standardFontSize is normally an instance method. Avoid invoking it on
+    // the prototype: UI plugins may expect instance configuration there.
+    var _base = 28;
+    try {
+        var fontProbe = new Window_Base(0, 0, 1, 1);
+        if (fontProbe.standardFontSize) {
+            _base = Number(fontProbe.standardFontSize()) || _base;
+        }
+    } catch (e) {
+        hudDebug('font-size probe failed; using fallback', e);
+    }
     var FS = {
-        title:  Math.max(11, Math.round(_base * 0.46)),
-        name:   Math.max(12, Math.round(_base * 0.53)),
-        hp:     Math.max(11, Math.round(_base * 0.46)),
-        score:  Math.max(16, Math.round(_base * 0.75)),
+        title:  Math.max(11, Math.round(_base * 0.46 * CFG.uiScale)),
+        name:   Math.max(12, Math.round(_base * 0.53 * CFG.uiScale)),
+        hp:     Math.max(11, Math.round(_base * 0.46 * CFG.uiScale)),
+        score:  Math.max(16, Math.round(_base * 0.75 * CFG.uiScale)),
     };
     var FONT = 'GameFont, Arial, sans-serif';
 
@@ -291,16 +322,16 @@
         var titleH  = FS.title + ip;       // title row height
         var nameFs  = FS.name;
         var hpFs    = FS.hp;
-        var barH    = Math.max(10, Math.round(_base * 0.50));  // gauge height scales with font
-        var lineH   = nameFs + 4;          // single text line height
-        var w       = CFG.panelWidth;
+        var barH    = Math.max(10, Math.round(_base * 0.50 * CFG.uiScale));  // gauge height scales with font
+        var lineH   = nameFs + 4 * CFG.uiScale;          // single text line height
+        var w       = Math.round(CFG.panelWidth * CFG.uiScale);
         var contentW = w - ip * 2;
 
         // Name column: ~45% of content width
         var nameColW = Math.floor(contentW * 0.44);
         var barX     = ip + nameColW + ip;
-        var barW     = contentW - nameColW - ip - 52;  // leave 52px for hp text
-        var numX     = barX + barW + 4;
+        var barW     = contentW - nameColW - ip - 52 * CFG.uiScale;  // leave room for hp text
+        var numX     = barX + barW + 4 * CFG.uiScale;
         var numW     = w - numX - ip;
 
         // Pre-compute wrapped names to know row heights
@@ -315,7 +346,7 @@
         // Total height
         var bodyH = 0;
         for (var ri = 0; ri < rows.length; ri++) bodyH += rows[ri].rowH;
-        var h = ip + titleH + 4 + bodyH + ip;
+        var h = ip + titleH + 4 * CFG.uiScale + bodyH + ip;
 
         this.bitmap = new Bitmap(w, h);
         var bmp     = this.bitmap;
@@ -342,7 +373,7 @@
         ctx.restore();
 
         // Rows
-        var curY = sepY + 4;
+        var curY = sepY + 4 * CFG.uiScale;
 
         for (var i = 0; i < rows.length; i++) {
             var r      = rows[i];
@@ -384,10 +415,10 @@
         bmp._setDirty();
 
         // Position with margin
-        this.y = CFG.panelY;
+        this.y = CFG.panelY * CFG.uiScale;
         this.x = (this._side === 'enemy')
-            ? CFG.panelMargin
-            : Graphics.boxWidth - CFG.panelWidth - CFG.panelMargin;
+            ? CFG.panelMargin * CFG.uiScale
+            : Graphics.boxWidth - w - CFG.panelMargin * CFG.uiScale;
     };
 
     Sprite_PalHPPanel.prototype.update = function () {
@@ -400,7 +431,7 @@
         }
         // Keep pinned to right edge (adaptive resolution)
         if (this._side === 'player') {
-            this.x = Graphics.boxWidth - CFG.panelWidth - CFG.panelMargin;
+            this.x = Graphics.boxWidth - this.bitmap.width - CFG.panelMargin * CFG.uiScale;
         }
     };
 
@@ -494,7 +525,7 @@
         bmp._setDirty();
 
         this.x = Math.floor((Graphics.boxWidth - w) / 2);
-        this.y = CFG.scorebarY;
+        this.y = CFG.scorebarY * CFG.uiScale;
     };
 
     Sprite_PalScorebar.prototype.update = function () {
@@ -518,20 +549,54 @@
     Scene_Battle.prototype.createAllWindows = function () {
         _Scene_Battle_createAllWindows.call(this);
         this._suppressDefaultBattleUI();
-        // Add AFTER window layer so they render on top of everything
+    };
+
+    var _Scene_Battle_createDisplayObjects = Scene_Battle.prototype.createDisplayObjects;
+    Scene_Battle.prototype.createDisplayObjects = function () {
+        _Scene_Battle_createDisplayObjects.call(this);
+        // Attach to the scene after spriteset and window layer creation, so
+        // neither battle battlers nor Yanfly's movable window layer can cover it.
         this._palEnemyPanel  = new Sprite_PalHPPanel('enemy');
         this._palPlayerPanel = new Sprite_PalHPPanel('player');
         this._palScorebar    = new Sprite_PalScorebar();
         this.addChild(this._palEnemyPanel);
         this.addChild(this._palPlayerPanel);
         this.addChild(this._palScorebar);
+        hudDebug('battle HUD sprites created', {
+            children: this.children.length,
+            spritesetIndex: this.children.indexOf(this._spriteset),
+            windowLayerIndex: this.children.indexOf(this._windowLayer),
+            enemyIndex: this.children.indexOf(this._palEnemyPanel),
+            playerIndex: this.children.indexOf(this._palPlayerPanel),
+            scoreIndex: this.children.indexOf(this._palScorebar)
+        });
     };
 
-    // Reset both score variables to 0 at the start of every battle.
-    // This is the only place the plugin writes to these variables.
     var _Scene_Battle_start = Scene_Battle.prototype.start;
     Scene_Battle.prototype.start = function () {
         _Scene_Battle_start.call(this);
+        if (this._palEnemyPanel) this._palEnemyPanel.visible = true;
+        if (this._palPlayerPanel) this._palPlayerPanel.visible = true;
+        if (this._palScorebar) {
+            this._palScorebar.visible = true;
+            this._palScorebar.y = CFG.scorebarY * CFG.uiScale;
+            if (this._palScorebar.bitmap) {
+                this._palScorebar.x = Math.floor((Graphics.boxWidth - this._palScorebar.bitmap.width) / 2);
+            }
+        }
+        if (this._palEnemyPanel) this._palEnemyPanel.x = CFG.panelMargin * CFG.uiScale;
+        if (this._palPlayerPanel) {
+            var playerWidth = this._palPlayerPanel.bitmap ? this._palPlayerPanel.bitmap.width : Math.round(CFG.panelWidth * CFG.uiScale);
+            this._palPlayerPanel.x = Graphics.boxWidth - playerWidth - CFG.panelMargin * CFG.uiScale;
+        }
+        hudDebug('battle started', {
+            box: [Graphics.boxWidth, Graphics.boxHeight],
+            hud: {
+                enemy: this._palEnemyPanel && { visible: this._palEnemyPanel.visible, position: [this._palEnemyPanel.x, this._palEnemyPanel.y], bitmap: this._palEnemyPanel.bitmap && [this._palEnemyPanel.bitmap.width, this._palEnemyPanel.bitmap.height] },
+                player: this._palPlayerPanel && { visible: this._palPlayerPanel.visible, position: [this._palPlayerPanel.x, this._palPlayerPanel.y], bitmap: this._palPlayerPanel.bitmap && [this._palPlayerPanel.bitmap.width, this._palPlayerPanel.bitmap.height] },
+                score: this._palScorebar && { visible: this._palScorebar.visible, position: [this._palScorebar.x, this._palScorebar.y], bitmap: this._palScorebar.bitmap && [this._palScorebar.bitmap.width, this._palScorebar.bitmap.height] }
+            }
+        });
         if ($gameVariables) {
             $gameVariables.setValue(CFG.scoreVarId,      0);
             $gameVariables.setValue(CFG.enemyScoreVarId, 0);
@@ -560,6 +625,29 @@
     var _Scene_Battle_updateStatusWindow = Scene_Battle.prototype.updateStatusWindow;
     Scene_Battle.prototype.updateStatusWindow = function () {
         _Scene_Battle_updateStatusWindow.call(this);
+        if (this._palEnemyPanel && !this._palDebugLogged) {
+            this._palDebugLogged = true;
+            var report = function (sprite) {
+                return sprite ? {
+                    visible: sprite.visible,
+                    x: sprite.x,
+                    y: sprite.y,
+                    opacity: sprite.opacity,
+                    bitmap: sprite.bitmap && [sprite.bitmap.width, sprite.bitmap.height],
+                    parent: sprite.parent && sprite.parent.constructor.name
+                } : null;
+            };
+            hudDebug('first battle update', {
+                scene: this.constructor.name,
+                hud: {
+                    enemy: report(this._palEnemyPanel),
+                    player: report(this._palPlayerPanel),
+                    score: report(this._palScorebar)
+                },
+                windowLayer: this._windowLayer && { x: this._windowLayer.x, visible: this._windowLayer.visible, index: this.children.indexOf(this._windowLayer) },
+                sceneChildren: this.children.map(function (child) { return child.constructor.name; })
+            });
+        }
         if (this._statusWindow) {
             this._statusWindow.visible         = false;
             this._statusWindow.contentsOpacity = 0;
@@ -592,10 +680,11 @@
     var _Game_Interpreter_pluginCommand = Game_Interpreter.prototype.pluginCommand;
     Game_Interpreter.prototype.pluginCommand = function (command, args) {
         _Game_Interpreter_pluginCommand.call(this, command, args);
-        if (command !== 'PalBattleHUD') return;
+        if (command !== 'BattleHUD' && command !== 'PalBattleHUD') return;
 
         var sub   = (args[0] || '').toLowerCase();
         var scene = SceneManager._scene;
+        hudDebug('plugin command', { command: command, args: args, scene: scene && scene.constructor.name });
 
         if (sub === 'show') {
             if (scene._palEnemyPanel)  scene._palEnemyPanel.visible  = true;

@@ -861,6 +861,37 @@
 	}
 
 	//=========================================================================
+	// TouchInput suppression on mobile
+	//
+	// On touch devices the virtual gamepad handles all input.  Raw TouchInput
+	// taps on the game canvas still fire isTriggered / isCancelled / isPressed
+	// which cause unwanted NPC interactions, menu confirmations, and movement
+	// when the player touches anywhere on the canvas instead of a button.
+	//
+	// Fix: when a touch device is detected and the gamepad is visible + enabled,
+	// suppress TouchInput._triggered and TouchInput._cancelled so the engine
+	// sees no tap input from the canvas.  The gamepad writes directly to
+	// Input._currentState so button presses still work normally.
+	//
+	// We leave TouchInput._moved and _wheelScrolled alone so scroll / drag
+	// behaviours that don't conflict with the gamepad still function.
+	//=========================================================================
+	if (isTouchDevice() || CFG.showOnDesktop) {
+		var _TouchInput_update = TouchInput.update;
+		TouchInput.update = function () {
+			_TouchInput_update.call(this);
+			if (_activeGamepad && _activeGamepad._visible && !_activeGamepad._disabled) {
+				// Suppress raw taps in every scene, including battle. Virtual
+				// gamepad buttons feed Input directly and remain functional.
+				// _pressed is intentionally left alone — the engine uses it for
+				// held-state detection unrelated to player touch input.
+				TouchInput._triggered = false;
+				TouchInput._cancelled = false;
+			}
+		};
+	}
+
+	//=========================================================================
 	// WASD navigation
 	// W/A/S/D map to up/left/down/right, replacing their old bindings.
 	// Q and W previously mapped to pageup/pagedown — those are moved to
