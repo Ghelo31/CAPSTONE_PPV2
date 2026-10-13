@@ -26,9 +26,9 @@
  * @default false
  *
  * @help
- * Adds a navigation choice to eligible Show Text commands on maps and during
- * battle. Susunod continues the event. Bumalik redisplays the previous text
- * without rerunning event commands.
+ * Adds a navigation choice to eligible Show Text commands on maps. Susunod
+ * continues the event. Bumalik redisplays the previous text without rerunning
+ * event commands. Battle dialogue is left unchanged.
  *
  * Existing choices, number input, and item selection immediately after Show
  * Text are preserved. Other scenes and scrolling text are unchanged.
@@ -49,7 +49,7 @@
 
     function enabledInCurrentScene() {
         if (SceneManager._scene instanceof Scene_Map) return ENABLE_MAP;
-        if (SceneManager._scene instanceof Scene_Battle) return ENABLE_BATTLE;
+        if (SceneManager._scene instanceof Scene_Battle) return false;
         return false;
     }
 
