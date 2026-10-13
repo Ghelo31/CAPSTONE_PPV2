@@ -87,7 +87,7 @@
 (function () {
     'use strict';
 
-    var PLUGIN_NAME = 'PalBattleHUD';
+    var PLUGIN_NAME = 'BattleHUD';
     var params      = PluginManager.parameters(PLUGIN_NAME);
 
     var CFG = {
@@ -145,12 +145,14 @@
         outlineW:     3,
     };
 
-    var _base = 28;
+    var _base = Window_Base.prototype.standardFontSize
+        ? Window_Base.prototype.standardFontSize()
+        : 28;
     var FS = {
-        title:  Math.max(11, Math.round(_base * 0.46)),  // 13 px — "ENEMIES/PARTY"
-        name:   Math.max(12, Math.round(_base * 0.53)),  // 15 px — member name
-        hp:     Math.max(11, Math.round(_base * 0.46)),  // 13 px — hp numbers
-        score:  Math.max(16, Math.round(_base * 0.75)),  // 21 px — scorebar
+        title:  Math.max(11, Math.round(_base * 0.46)),
+        name:   Math.max(12, Math.round(_base * 0.53)),
+        hp:     Math.max(11, Math.round(_base * 0.46)),
+        score:  Math.max(16, Math.round(_base * 0.75)),
     };
     var FONT = 'GameFont, Arial, sans-serif';
 
@@ -289,7 +291,7 @@
         var titleH  = FS.title + ip;       // title row height
         var nameFs  = FS.name;
         var hpFs    = FS.hp;
-        var barH    = 14;                  // same as MapStatusWindow_Reworked gauge height
+        var barH    = Math.max(10, Math.round(_base * 0.50));  // gauge height scales with font
         var lineH   = nameFs + 4;          // single text line height
         var w       = CFG.panelWidth;
         var contentW = w - ip * 2;

@@ -1,7 +1,7 @@
 [
 null,
 {"id":1,"expanded":false,"name":"House 2","order":12,"parentId":2,"scrollX":819,"scrollY":457},
-{"id":2,"expanded":true,"name":"[START] Tutorial Map","order":1,"parentId":0,"scrollX":540.6666666666666,"scrollY":642},
+{"id":2,"expanded":true,"name":"[START] Tutorial Map","order":1,"parentId":0,"scrollX":540.6666666666666,"scrollY":631.3333333333334},
 {"id":3,"expanded":true,"name":"Book Scene","order":2,"parentId":2,"scrollX":819,"scrollY":457},
 {"id":4,"expanded":false,"name":"Item Shop","order":11,"parentId":2,"scrollX":819,"scrollY":457},
 {"id":5,"expanded":true,"name":"House 2","order":3,"parentId":3,"scrollX":819,"scrollY":457},
